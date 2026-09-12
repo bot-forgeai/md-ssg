@@ -392,6 +392,32 @@ def test_build_site_no_tags_no_tag_pages(tmp_path):
     assert not (output_dir / "tags").exists()
 
 
+def test_default_page_template_links_back_to_index(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\ntags: python\n---\nBody A.\n")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "Test Site")
+
+    a_html = (output_dir / "a.html").read_text()
+    assert 'href="index.html"' in a_html
+
+
+def test_default_tag_templates_link_back_to_index(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\ntags: python\n---\nBody A.\n")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "Test Site")
+
+    tag_html = (output_dir / "tags" / "python.html").read_text()
+    assert 'href="../index.html"' in tag_html
+    tag_index_html = (output_dir / "tags" / "index.html").read_text()
+    assert 'href="../index.html"' in tag_index_html
+
+
 def test_build_site_excludes_draft_from_tag_pages(tmp_path):
     content_dir = tmp_path / "content"
     content_dir.mkdir()

@@ -12,6 +12,7 @@ DEFAULT_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>{{ title }}</title></head>
 <body>
+<nav><a href="index.html">&larr; home</a></nav>
 <h1>{{ title }}</h1>
 <div class="meta">{{ date }} {{ tags }}</div>
 {{ content }}
@@ -29,8 +30,27 @@ DEFAULT_INDEX_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
-DEFAULT_TAG_TEMPLATE = DEFAULT_INDEX_TEMPLATE
-DEFAULT_TAG_INDEX_TEMPLATE = DEFAULT_INDEX_TEMPLATE
+DEFAULT_TAG_TEMPLATE = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<body>
+<nav><a href="../index.html">&larr; home</a></nav>
+<h1>{{ title }}</h1>
+{{ content }}
+</body>
+</html>
+"""
+
+DEFAULT_TAG_INDEX_TEMPLATE = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<body>
+<nav><a href="../index.html">&larr; home</a></nav>
+<h1>{{ title }}</h1>
+{{ content }}
+</body>
+</html>
+"""
 
 
 def _read_template(templates_dir, name, fallback):
