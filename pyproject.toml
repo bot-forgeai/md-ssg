@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md-ssg"
+version = "0.1.0"
+description = "A small static site generator: markdown + front matter -> plain static HTML, zero third-party runtime dependencies"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+ssg = "ssg.__main__:main"
+
+[tool.setuptools]
+packages = ["ssg"]
+
+[tool.setuptools.package-data]
+ssg = ["site/**/*"]
