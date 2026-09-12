@@ -10,46 +10,103 @@ from .tags import group_by_tag, parse_tags, slugify_tag
 
 DEFAULT_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<head><meta charset="utf-8"><title>{{ title }}</title><link rel="stylesheet" href="static/style.css"></head>
 <body>
 <nav><a href="index.html">&larr; home</a></nav>
+<main><article>
 <h1>{{ title }}</h1>
 <div class="meta">{{ date }} {{ tags }}</div>
 {{ content }}
+</article></main>
 </body>
 </html>
 """
 
 DEFAULT_INDEX_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<head><meta charset="utf-8"><title>{{ title }}</title><link rel="stylesheet" href="static/style.css"></head>
 <body>
+<main>
 <h1>{{ title }}</h1>
 {{ content }}
+</main>
 </body>
 </html>
 """
 
 DEFAULT_TAG_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<head><meta charset="utf-8"><title>{{ title }}</title><link rel="stylesheet" href="../static/style.css"></head>
 <body>
 <nav><a href="../index.html">&larr; home</a></nav>
+<main>
 <h1>{{ title }}</h1>
 {{ content }}
+</main>
 </body>
 </html>
 """
 
 DEFAULT_TAG_INDEX_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<head><meta charset="utf-8"><title>{{ title }}</title><link rel="stylesheet" href="../static/style.css"></head>
 <body>
 <nav><a href="../index.html">&larr; home</a></nav>
+<main>
 <h1>{{ title }}</h1>
 {{ content }}
+</main>
 </body>
 </html>
+"""
+
+DEFAULT_STYLE_CSS = """\
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 42em;
+  margin: 2em auto;
+  padding: 0 1em;
+  line-height: 1.6;
+  color: #222;
+}
+nav {
+  margin-bottom: 1.5em;
+}
+nav a {
+  text-decoration: none;
+  color: #555;
+}
+h1, h2, h3 {
+  line-height: 1.25;
+  margin-top: 1.5em;
+}
+.meta {
+  color: #777;
+  font-size: 0.9em;
+  margin-bottom: 1.5em;
+}
+a {
+  color: #1a5fb4;
+}
+a:visited {
+  color: #613583;
+}
+code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: #f0f0f0;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+pre {
+  background: #f0f0f0;
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+pre code {
+  background: none;
+  padding: 0;
+}
 """
 
 
@@ -149,6 +206,12 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
         if os.path.exists(dest):
             shutil.rmtree(dest)
         shutil.copytree(static_dir, dest)
+
+    style_path = os.path.join(output_dir, "static", "style.css")
+    if not os.path.exists(style_path):
+        os.makedirs(os.path.join(output_dir, "static"), exist_ok=True)
+        with open(style_path, "w", encoding="utf-8") as f:
+            f.write(DEFAULT_STYLE_CSS)
 
     if base_url:
         rss = render_rss(pages, site_title, base_url)

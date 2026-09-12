@@ -27,7 +27,11 @@ A site directory holds `content/` (markdown files, front matter like
 `title:`/`date:`, searched recursively), an optional `templates/`
 (`page.html` and `index.html`; falls back to a built-in default when
 missing), and an optional `static/` copied as-is into the build
-output. `build` writes one HTML file per content page plus an
+output — if a site's own `static/` has no `style.css`, a small
+built-in default (system fonts, code-block styling, no color scheme)
+is written to `static/style.css` so the default templates aren't
+unstyled; a site's own `static/style.css` always takes precedence.
+`build` writes one HTML file per content page plus an
 `index.html` listing every page sorted newest-first by `date`.
 `serve` builds and then serves the output directory over a local
 HTTP server (binds to `127.0.0.1` by default; pass `--host 0.0.0.0`
