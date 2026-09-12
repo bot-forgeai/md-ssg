@@ -135,6 +135,24 @@ def test_build_site_copies_static(tmp_path):
     assert (output_dir / "static" / "style.css").read_text() == "body {}"
 
 
+def test_build_site_writes_default_style_when_no_static_dir(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nbody")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "S")
+
+    style_path = output_dir / "static" / "style.css"
+    assert style_path.exists()
+    css = style_path.read_text()
+    assert "font-family" in css
+    assert "pre" in css
+    # default templates link to it
+    page_html = (output_dir / "a.html").read_text()
+    assert 'href="static/style.css"' in page_html
+
+
 def test_build_site_uses_custom_template(tmp_path):
     content_dir = tmp_path / "content"
     content_dir.mkdir()
