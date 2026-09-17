@@ -6,6 +6,7 @@ from .content import load_pages
 from .feed import render_rss
 from .markdown import render as render_markdown
 from .render import apply_template
+from .sitemap import render_sitemap
 from .tags import group_by_tag, parse_tags, slugify_tag
 
 DEFAULT_TEMPLATE = """<!DOCTYPE html>
@@ -163,8 +164,9 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
                 base_url=None, drafts=False):
     """Render every content page plus an index, writing HTML into output_dir.
 
-    If base_url is given, also writes an RSS feed to feed.xml -- feed
-    links need an absolute URL, so the feed is skipped without one.
+    If base_url is given, also writes an RSS feed to feed.xml and a
+    sitemap to sitemap.xml -- both need absolute URLs, so they're
+    skipped without one.
 
     A page with a front-matter `draft: true` field is excluded from the
     build (and the feed) unless drafts=True is passed.
@@ -217,5 +219,9 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
         rss = render_rss(pages, site_title, base_url)
         with open(os.path.join(output_dir, "feed.xml"), "w", encoding="utf-8") as f:
             f.write(rss)
+
+        sitemap = render_sitemap(pages, base_url)
+        with open(os.path.join(output_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
+            f.write(sitemap)
 
     return pages

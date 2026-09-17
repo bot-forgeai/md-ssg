@@ -43,17 +43,21 @@ fenced code blocks, and inline `**bold**`/`*italic*`/`` `code` ``/
 `[links](url)` — enough for real prose, not a CommonMark-complete
 parser. Raw HTML in content is escaped, not executed.
 
-## RSS feed
+## RSS feed and sitemap
 
 Pass `--base-url` (a global flag, before the subcommand) to also
-write an RSS 2.0 `feed.xml` alongside the built pages, e.g.
-`ssg --site ssg/site --base-url https://example.com build`. Feed
-links need an absolute URL, so the feed is skipped without one.
+write an RSS 2.0 `feed.xml` and a `sitemap.xml` alongside the built
+pages, e.g. `ssg --site ssg/site --base-url https://example.com build`.
+Both need an absolute URL for their links, so they're skipped without
+one. `sitemap.xml` follows the [sitemaps.org](https://www.sitemaps.org/)
+protocol: one `<url>` per page, with `<lastmod>` when a page's front
+matter has a `date` field.
 
 ## Drafts
 
 A page marked `draft: true` in its front matter is excluded from the
-build, the index, and the feed by default; pass the global `--drafts`
+build, the index, the feed, and the sitemap by default; pass the
+global `--drafts`
 flag (e.g. `ssg --site ssg/site --drafts serve`) to include drafts too,
 for local preview before publishing. `new TITLE --draft` scaffolds a
 new post already marked as a draft.

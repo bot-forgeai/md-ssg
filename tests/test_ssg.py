@@ -1,6 +1,7 @@
 import os
 import threading
 import urllib.request
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -9,6 +10,7 @@ from ssg.content import ContentError, load_page, load_pages, parse_front_matter
 from ssg.feed import render_rss
 from ssg.markdown import render as render_markdown
 from ssg.render import apply_template
+from ssg.sitemap import render_sitemap
 from ssg.tags import group_by_tag, parse_tags, slugify_tag
 from ssg.watch import scan_signature, watch_loop
 
@@ -261,6 +263,62 @@ def test_build_site_skips_feed_without_base_url(tmp_path):
     build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "S")
 
     assert not (output_dir / "feed.xml").exists()
+
+
+def test_render_sitemap_well_formed():
+    pages = [
+        {"slug": "two", "title": "Two", "date": "2026-02-01"},
+        {"slug": "one", "title": "One", "date": "2026-01-01"},
+    ]
+    xml = render_sitemap(pages, "http://example.com")
+    root = ET.fromstring(xml)
+    ns = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+    locs = [el.text for el in root.findall(f"{ns}url/{ns}loc")]
+    assert locs == ["http://example.com/two.html", "http://example.com/one.html"]
+
+
+def test_render_sitemap_lastmod_present_when_date_set():
+    pages = [{"slug": "a", "title": "A", "date": "2026-01-01"}]
+    xml = render_sitemap(pages, "http://example.com")
+    assert "<lastmod>2026-01-01</lastmod>" in xml
+
+
+def test_render_sitemap_lastmod_absent_without_date():
+    pages = [{"slug": "a", "title": "A"}]
+    xml = render_sitemap(pages, "http://example.com")
+    assert "<lastmod>" not in xml
+    assert "<loc>http://example.com/a.html</loc>" in xml
+
+
+def test_render_sitemap_trailing_slash_base_url():
+    pages = [{"slug": "a", "title": "A"}]
+    xml = render_sitemap(pages, "http://example.com/")
+    assert "<loc>http://example.com/a.html</loc>" in xml
+
+
+def test_build_site_writes_sitemap_when_base_url_given(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\ndate: 2026-01-01\n---\nbody")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "S",
+               base_url="http://example.com")
+
+    sitemap_path = output_dir / "sitemap.xml"
+    assert sitemap_path.exists()
+    assert "http://example.com/a.html" in sitemap_path.read_text()
+
+
+def test_build_site_skips_sitemap_without_base_url(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nbody")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "S")
+
+    assert not (output_dir / "sitemap.xml").exists()
 
 
 def test_cli_build_with_base_url_writes_feed(tmp_path):
