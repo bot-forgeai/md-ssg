@@ -5,3 +5,8 @@ tags: meta
 ---
 
 Just a second page to prove the index sorts by date, newest first.
+
+| Feature | Status |
+| --- | :---: |
+| Markdown tables | done |
+| RSS feed | done |

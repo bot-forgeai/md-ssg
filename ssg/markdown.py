@@ -7,6 +7,38 @@ _INLINE_CODE = re.compile(r"`([^`]+)`")
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
 _ITALIC = re.compile(r"\*([^*]+)\*")
 _LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_TABLE_SEPARATOR_CELL = re.compile(r"^:?-+:?$")
+
+
+def _split_table_row(line):
+    """Split a `| a | b |`-style row into cells, tolerating missing outer pipes."""
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    return [cell.strip() for cell in stripped.split("|")]
+
+
+def _table_alignments(separator_cells):
+    aligns = []
+    for cell in separator_cells:
+        left = cell.startswith(":")
+        right = cell.endswith(":")
+        if left and right:
+            aligns.append("center")
+        elif right:
+            aligns.append("right")
+        elif left:
+            aligns.append("left")
+        else:
+            aligns.append(None)
+    return aligns
+
+
+def _is_table_separator(line):
+    cells = _split_table_row(line)
+    return bool(cells) and all(_TABLE_SEPARATOR_CELL.match(c) for c in cells)
 
 
 def _render_inline(text):
@@ -64,6 +96,39 @@ def render(source):
             level = len(header_match.group(1))
             out.append(f"<h{level}>{_render_inline(header_match.group(2))}</h{level}>")
             i += 1
+            continue
+
+        if (
+            "|" in stripped
+            and i + 1 < len(lines)
+            and _is_table_separator(lines[i + 1].strip())
+        ):
+            flush_paragraph()
+            flush_list()
+            header_cells = _split_table_row(stripped)
+            aligns = _table_alignments(_split_table_row(lines[i + 1].strip()))
+            i += 2
+            body_rows = []
+            while i < len(lines) and lines[i].strip() and "|" in lines[i]:
+                body_rows.append(_split_table_row(lines[i]))
+                i += 1
+
+            def _style(idx):
+                align = aligns[idx] if idx < len(aligns) else None
+                return f' style="text-align: {align}"' if align else ""
+
+            out.append("<table>")
+            out.append("<thead><tr>" + "".join(
+                f"<th{_style(idx)}>{_render_inline(cell)}</th>"
+                for idx, cell in enumerate(header_cells)
+            ) + "</tr></thead>")
+            out.append("<tbody>")
+            for row in body_rows:
+                out.append("<tr>" + "".join(
+                    f"<td{_style(idx)}>{_render_inline(cell)}</td>"
+                    for idx, cell in enumerate(row)
+                ) + "</tr>")
+            out.append("</tbody></table>")
             continue
 
         list_match = re.match(r"^[-*]\s+(.*)$", stripped)
