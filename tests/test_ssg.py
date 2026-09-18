@@ -93,6 +93,32 @@ def test_markdown_escapes_html():
     assert "&lt;script&gt;" in html
 
 
+def test_markdown_table_basic():
+    html = render_markdown("| a | b |\n| --- | --- |\n| 1 | 2 |\n")
+    assert "<table>" in html
+    assert "<thead><tr><th>a</th><th>b</th></tr></thead>" in html
+    assert "<tr><td>1</td><td>2</td></tr>" in html
+
+
+def test_markdown_table_alignment():
+    html = render_markdown("| a | b | c |\n| :-- | :-: | --: |\n| 1 | 2 | 3 |\n")
+    assert '<th style="text-align: left">a</th>' in html
+    assert '<th style="text-align: center">b</th>' in html
+    assert '<th style="text-align: right">c</th>' in html
+
+
+def test_markdown_table_without_outer_pipes():
+    html = render_markdown("a | b\n--- | ---\n1 | 2\n")
+    assert "<th>a</th><th>b</th>" in html
+    assert "<td>1</td><td>2</td>" in html
+
+
+def test_markdown_malformed_table_falls_back_to_paragraph():
+    html = render_markdown("| a | b |\nnot a separator line\n")
+    assert "<table>" not in html
+    assert "<p>" in html
+
+
 def test_apply_template_fills_known_keys():
     out = apply_template("<h1>{{ title }}</h1>{{ content }}", {"title": "T", "content": "C"})
     assert out == "<h1>T</h1>C"
