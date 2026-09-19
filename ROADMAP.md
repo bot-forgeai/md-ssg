@@ -22,7 +22,6 @@ weighed against that tradeoff before it's approved.
 
 | # | Item | Why | Rough scope |
 |---|---|---|---|
-| 3 | Blockquote and nested-list support | Same category as tables: real markdown people actually write that the current subset silently mangles or drops. | Medium — extends the existing block parser; nested lists are the fiddlier of the two. |
 | 4 | Per-site config file (`ssg.toml` or similar) | Right now every build repeats `--title`/`--base-url`/etc. as CLI flags. A config file removes that repetition and is a more natural home for future per-site settings (e.g. item 6 below). | Medium — stdlib `tomllib` (3.11+) avoids a new dependency; needs a compatibility decision for the `requires-python >=3.9` floor in `pyproject.toml`. |
 | 5 | Syntax highlighting for fenced code blocks | Code blocks currently render as plain monospace. Real highlighting usually means a third-party lexer (Pygments) — conflicts with the zero-dependency principle unless done as a small stdlib-only tokenizer for a handful of common languages. | Large, and the dependency tradeoff needs an explicit decision before scoping further. |
 | 6 | Pagination for the index and tag-index pages | Today's index lists every page on one HTML file; fine for a small blog, awkward once a site has dozens of posts. | Medium — needs a page-size setting (natural fit for item 4's config file) and predictable page-N URLs. |
@@ -35,6 +34,7 @@ weighed against that tradeoff before it's approved.
 |---|---|---|
 | 1 | `sitemap.xml` generation | #6 |
 | 2 | Table support in the markdown subset | #8 |
+| 3 | Blockquote and nested-list support | #10 |
 
 ## Notes
 
