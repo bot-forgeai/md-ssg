@@ -119,6 +119,60 @@ def test_markdown_malformed_table_falls_back_to_paragraph():
     assert "<p>" in html
 
 
+def test_markdown_blockquote():
+    html = render_markdown("> a quoted line\n> continues here\n")
+    assert "<blockquote><p>a quoted line continues here</p></blockquote>" in html
+
+
+def test_markdown_blockquote_inline_formatting():
+    html = render_markdown("> **bold** quote\n")
+    assert "<blockquote><p><strong>bold</strong> quote</p></blockquote>" in html
+
+
+def test_markdown_blockquote_without_space():
+    html = render_markdown(">no space after marker\n")
+    assert "<blockquote><p>no space after marker</p></blockquote>" in html
+
+
+def test_markdown_nested_blockquote_stays_flat():
+    html = render_markdown("> outer\n>> inner\n")
+    assert "<blockquote><p>outer &gt; inner</p></blockquote>" in html
+
+
+def test_markdown_blockquote_ends_paragraph():
+    html = render_markdown("> quoted\n\nnormal paragraph\n")
+    assert "<blockquote>" in html
+    assert "<p>normal paragraph</p>" in html
+
+
+def test_markdown_nested_list():
+    html = render_markdown("- top\n  - nested\n  - nested2\n- top2\n")
+    assert html.count("<ul>") == 2
+    assert html.count("</ul>") == 2
+    assert "<li>nested</li>" in html
+    assert "<li>top2</li>" in html
+    assert "<li>top<ul>" in html.replace("\n", "")
+
+
+def test_markdown_deeply_nested_list_dedent():
+    html = render_markdown(
+        "- a\n"
+        "  - b\n"
+        "    - c\n"
+        "- d\n"
+    )
+    assert html.count("<ul>") == 3
+    assert "<li>c</li>" in html
+    assert "<li>d</li>" in html
+
+
+def test_markdown_list_inconsistent_indentation_degrades_gracefully():
+    html = render_markdown("- top\n   - odd-indent\n- top2\n")
+    assert "<ul>" in html
+    assert "<li>odd-indent</li>" in html
+    assert "<li>top2</li>" in html
+
+
 def test_apply_template_fills_known_keys():
     out = apply_template("<h1>{{ title }}</h1>{{ content }}", {"title": "T", "content": "C"})
     assert out == "<h1>T</h1>C"

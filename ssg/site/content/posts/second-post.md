@@ -10,3 +10,11 @@ Just a second page to prove the index sorts by date, newest first.
 | --- | :---: |
 | Markdown tables | done |
 | RSS feed | done |
+
+> Blockquotes and nested lists now render properly too.
+
+- Top-level item
+  - Nested item one
+  - Nested item two
+    - Doubly-nested item
+- Another top-level item

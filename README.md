@@ -38,10 +38,13 @@ HTTP server (binds to `127.0.0.1` by default; pass `--host 0.0.0.0`
 for a LAN-reachable demo). `new TITLE` scaffolds a dated front-matter
 stub under `content/posts/`.
 
-The markdown subset covers headers, paragraphs, unordered lists,
-fenced code blocks, and inline `**bold**`/`*italic*`/`` `code` ``/
-`[links](url)` — enough for real prose, not a CommonMark-complete
-parser. Raw HTML in content is escaped, not executed.
+The markdown subset covers headers, paragraphs, unordered lists
+(nestable by indentation), blockquotes, GFM-style tables (with
+`:---`/`:-:`/`---:` alignment), fenced code blocks, and inline
+`**bold**`/`*italic*`/`` `code` ``/`[links](url)` — enough for real
+prose, not a CommonMark-complete parser. Raw HTML in content is
+escaped, not executed. Nested blockquotes (`>>`) aren't a separate
+nesting level — they're kept as flat content of the outer quote.
 
 ## RSS feed and sitemap
 
