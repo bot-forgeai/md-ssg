@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import pytest
 
 from ssg.build import build_site
+from ssg.config import ConfigError, load_config
 from ssg.content import ContentError, load_page, load_pages, parse_front_matter
 from ssg.feed import render_rss
 from ssg.markdown import render as render_markdown
@@ -670,3 +671,85 @@ def test_watch_loop_no_rebuild_without_changes(tmp_path):
                stop_event=stop_event, sleep_fn=fake_sleep, on_build=builds.append)
 
     assert len(builds) == 1
+
+
+def test_load_config_absent(tmp_path):
+    assert load_config(str(tmp_path)) == {}
+
+
+def test_load_config_basic(tmp_path):
+    (tmp_path / "ssg.toml").write_text(
+        '[site]\ntitle = "Config Title"\nbase_url = "https://example.com"\ndrafts = true\n'
+    )
+    config = load_config(str(tmp_path))
+    assert config == {
+        "site": {"title": "Config Title", "base_url": "https://example.com", "drafts": True}
+    }
+
+
+def test_load_config_malformed(tmp_path):
+    (tmp_path / "ssg.toml").write_text("this is not [ valid toml")
+    with pytest.raises(ConfigError):
+        load_config(str(tmp_path))
+
+
+def _make_site(tmp_path):
+    site_dir = tmp_path / "site"
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True)
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nBody.\n")
+    return site_dir
+
+
+def test_cli_build_uses_config_when_no_flags(tmp_path):
+    from ssg.__main__ import build_parser
+
+    site_dir = _make_site(tmp_path)
+    (site_dir / "ssg.toml").write_text(
+        '[site]\ntitle = "From Config"\nbase_url = "https://example.com"\n'
+    )
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "build"])
+    assert args.func(args) == 0
+    assert args.title == "From Config"
+    assert args.base_url == "https://example.com"
+    index_html = (site_dir / "_build" / "index.html").read_text()
+    assert "From Config" in index_html
+    assert (site_dir / "_build" / "feed.xml").exists()
+
+
+def test_cli_flags_override_config(tmp_path):
+    from ssg.__main__ import build_parser
+
+    site_dir = _make_site(tmp_path)
+    (site_dir / "ssg.toml").write_text('[site]\ntitle = "From Config"\n')
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "--title", "From CLI", "build"])
+    assert args.func(args) == 0
+    assert args.title == "From CLI"
+    index_html = (site_dir / "_build" / "index.html").read_text()
+    assert "From CLI" in index_html
+
+
+def test_cli_build_no_config_file_unchanged(tmp_path):
+    from ssg.__main__ import build_parser
+
+    site_dir = _make_site(tmp_path)
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "build"])
+    assert args.func(args) == 0
+    assert args.title == "My Site"
+    assert args.base_url is None
+    assert args.drafts is False
+
+
+def test_cli_build_malformed_config_clean_error(tmp_path, capsys):
+    from ssg.__main__ import build_parser
+
+    site_dir = _make_site(tmp_path)
+    (site_dir / "ssg.toml").write_text("not [ valid")
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "build"])
+    assert args.func(args) == 1
+    err = capsys.readouterr().err
+    assert "error:" in err
