@@ -46,6 +46,25 @@ prose, not a CommonMark-complete parser. Raw HTML in content is
 escaped, not executed. Nested blockquotes (`>>`) aren't a separate
 nesting level — they're kept as flat content of the outer quote.
 
+## Config file
+
+A site directory can hold an optional `ssg.toml` at its root instead
+of repeating `--title`/`--base-url`/`--drafts` on every command:
+
+```toml
+[site]
+title = "My Blog"
+base_url = "https://example.com"
+drafts = false
+```
+
+Precedence is CLI flags > `ssg.toml` > built-in defaults — a flag
+always wins if given, otherwise the config value is used, otherwise
+the built-in default (`title = "My Site"`, no base URL, drafts
+excluded). A malformed `ssg.toml` produces a clean `error: ...`
+message and a non-zero exit rather than a traceback. Requires Python
+3.11+ (uses the stdlib `tomllib` module — no new dependency).
+
 ## RSS feed and sitemap
 
 Pass `--base-url` (a global flag, before the subcommand) to also
