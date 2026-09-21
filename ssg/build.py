@@ -108,6 +108,23 @@ pre code {
   background: none;
   padding: 0;
 }
+.tok-keyword {
+  color: #8250df;
+  font-weight: 600;
+}
+.tok-string {
+  color: #0a7d33;
+}
+.tok-comment {
+  color: #6e7781;
+  font-style: italic;
+}
+.tok-number {
+  color: #b35900;
+}
+.tok-variable {
+  color: #0550ae;
+}
 """
 
 

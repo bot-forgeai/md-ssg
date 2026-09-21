@@ -3,6 +3,8 @@ links, paragraphs). Not CommonMark-complete, but enough for real prose."""
 import html
 import re
 
+from .highlight import highlight as _highlight_code
+
 _INLINE_CODE = re.compile(r"`([^`]+)`")
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
 _ITALIC = re.compile(r"\*([^*]+)\*")
@@ -114,13 +116,20 @@ def render(source):
             flush_paragraph()
             flush_list()
             flush_quote()
+            lang = stripped[3:].strip()
             code_lines = []
             i += 1
             while i < len(lines) and not lines[i].strip().startswith("```"):
                 code_lines.append(lines[i])
                 i += 1
-            code = html.escape("\n".join(code_lines))
-            out.append(f"<pre><code>{code}</code></pre>")
+            code_text = "\n".join(code_lines)
+            highlighted = _highlight_code(code_text, lang) if lang else None
+            if highlighted is not None:
+                out.append(
+                    f'<pre><code class="language-{html.escape(lang)}">{highlighted}</code></pre>'
+                )
+            else:
+                out.append(f"<pre><code>{html.escape(code_text)}</code></pre>")
             i += 1
             continue
 

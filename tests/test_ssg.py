@@ -9,6 +9,7 @@ from ssg.build import build_site
 from ssg.config import ConfigError, load_config
 from ssg.content import ContentError, load_page, load_pages, parse_front_matter
 from ssg.feed import render_rss
+from ssg.highlight import highlight as highlight_code, supported_languages
 from ssg.markdown import render as render_markdown
 from ssg.render import apply_template
 from ssg.sitemap import render_sitemap
@@ -753,3 +754,76 @@ def test_cli_build_malformed_config_clean_error(tmp_path, capsys):
     assert args.func(args) == 1
     err = capsys.readouterr().err
     assert "error:" in err
+
+
+def test_highlight_unrecognized_language_returns_none():
+    assert highlight_code("x = 1", "cobol") is None
+
+
+def test_highlight_python_keyword_and_string_and_comment():
+    out = highlight_code('def f(x):\n    return "hi"  # done\n', "python")
+    assert '<span class="tok-keyword">def</span>' in out
+    assert '<span class="tok-keyword">return</span>' in out
+    assert '<span class="tok-string">&quot;hi&quot;</span>' in out
+    assert '<span class="tok-comment"># done</span>' in out
+
+
+def test_highlight_python_number():
+    out = highlight_code("x = 42", "python")
+    assert '<span class="tok-number">42</span>' in out
+
+
+def test_highlight_escapes_html_in_code():
+    out = highlight_code('s = "<script>"', "python")
+    assert "<script>" not in out
+    assert "&lt;script&gt;" in out
+
+
+def test_highlight_javascript_keyword():
+    out = highlight_code("const x = 1; // note", "javascript")
+    assert '<span class="tok-keyword">const</span>' in out
+    assert '<span class="tok-comment">// note</span>' in out
+
+
+def test_highlight_bash_keyword_and_variable():
+    out = highlight_code("if [ -f $FILE ]; then echo hi; fi", "bash")
+    assert '<span class="tok-keyword">if</span>' in out
+    assert '<span class="tok-variable">$FILE</span>' in out
+
+
+def test_highlight_json_literal():
+    out = highlight_code('{"ok": true, "n": 1}', "json")
+    assert '<span class="tok-keyword">true</span>' in out
+    assert '<span class="tok-string">&quot;ok&quot;</span>' in out
+    assert '<span class="tok-number">1</span>' in out
+
+
+def test_highlight_language_aliases():
+    assert highlight_code("x = 1", "py") == highlight_code("x = 1", "python")
+    assert highlight_code("let x = 1", "js") == highlight_code("let x = 1", "javascript")
+    assert highlight_code("echo hi", "sh") == highlight_code("echo hi", "shell")
+
+
+def test_supported_languages_lists_aliases_and_canonical():
+    langs = supported_languages()
+    assert "python" in langs
+    assert "py" in langs
+    assert "json" in langs
+
+
+def test_markdown_fenced_code_with_language_gets_highlighted():
+    html = render_markdown("```python\ndef f():\n    pass\n```")
+    assert '<code class="language-python">' in html
+    assert '<span class="tok-keyword">def</span>' in html
+
+
+def test_markdown_fenced_code_unknown_language_falls_back_to_plain():
+    html = render_markdown("```cobol\nDISPLAY 'HI'.\n```")
+    assert "<pre><code>" in html
+    assert "tok-" not in html
+    assert "DISPLAY" in html
+
+
+def test_markdown_fenced_code_no_language_unchanged():
+    html = render_markdown("```\nplain text\n```")
+    assert "<pre><code>plain text</code></pre>" in html
