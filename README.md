@@ -46,6 +46,16 @@ prose, not a CommonMark-complete parser. Raw HTML in content is
 escaped, not executed. Nested blockquotes (`>>`) aren't a separate
 nesting level — they're kept as flat content of the outer quote.
 
+A fenced code block with a language hint (`` ```python ``) gets
+syntax highlighting for a handful of common languages — Python, JS,
+bash/shell, and JSON (plus the `py`/`js`/`sh`/`shell` aliases) — via
+a small stdlib-only tokenizer (`ssg/highlight.py`, regex-based
+keyword/string/comment/number classification, not a real
+grammar-aware highlighter), keeping the zero-runtime-dependency
+principle intact. An unrecognized or omitted language falls back to
+plain, unhighlighted rendering. Highlighted tokens get `tok-*` CSS
+classes, styled by the default stylesheet.
+
 ## Config file
 
 A site directory can hold an optional `ssg.toml` at its root instead

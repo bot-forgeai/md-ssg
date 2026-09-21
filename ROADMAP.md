@@ -22,7 +22,6 @@ weighed against that tradeoff before it's approved.
 
 | # | Item | Why | Rough scope |
 |---|---|---|---|
-| 5 | Syntax highlighting for fenced code blocks | Code blocks currently render as plain monospace. Real highlighting usually means a third-party lexer (Pygments) — conflicts with the zero-dependency principle unless done as a small stdlib-only tokenizer for a handful of common languages. | Large, and the dependency tradeoff needs an explicit decision before scoping further. |
 | 6 | Pagination for the index and tag-index pages | Today's index lists every page on one HTML file; fine for a small blog, awkward once a site has dozens of posts. | Medium — needs a page-size setting (natural fit for item 4's config file) and predictable page-N URLs. |
 | 7 | Custom 404 page support | `serve` has no notion of a not-found page; a site providing `templates/404.html` (or similar) could get it copied/rendered into the build output. | Small — mirrors the existing template-fallback pattern already used for `page.html`/`index.html`. |
 | 8 | GitHub Pages deploy helper | A documented workflow (or a bundled `.github/workflows/deploy.yml` template a site can copy) for publishing `ssg build`'s output to GitHub Pages. Removes a manual step for anyone actually using this to publish something. | Small — mostly documentation plus one workflow YAML template; no code changes to `ssg/` itself. |
@@ -35,6 +34,7 @@ weighed against that tradeoff before it's approved.
 | 2 | Table support in the markdown subset | #8 |
 | 3 | Blockquote and nested-list support | #10 |
 | 4 | Per-site config file (`ssg.toml`) | #12 |
+| 5 | Syntax highlighting for fenced code blocks | #14 |
 
 ## Notes
 

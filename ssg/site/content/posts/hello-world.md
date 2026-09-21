@@ -14,7 +14,8 @@ markdown subset.
 - `inline code`
 - [links](https://example.com)
 
-```
+```python
 def add(a, b):
+    # a fenced block with a language hint gets syntax highlighting
     return a + b
 ```
