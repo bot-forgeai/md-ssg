@@ -66,6 +66,7 @@ of repeating `--title`/`--base-url`/`--drafts` on every command:
 title = "My Blog"
 base_url = "https://example.com"
 drafts = false
+page_size = 10
 ```
 
 Precedence is CLI flags > `ssg.toml` > built-in defaults — a flag
@@ -102,6 +103,19 @@ A page's front-matter `tags:` field (a comma-separated string, e.g.
 page count; the default page template links each of a page's own tags
 back to its tag listing. Sites with no tagged pages get no `tags/`
 directory at all.
+
+## Pagination
+
+By default the site index and each tag's listing page hold every
+matching page on one HTML file. Pass `--page-size N` (a global flag,
+or `page_size` under `ssg.toml`'s `[site]` table) to split each into
+pages of N entries instead: page 1 keeps the original filename
+(`index.html`, `tags/<tag>.html`) so existing links never break, and
+page 2+ becomes `index2.html`, `index3.html`, ... / `tags/<tag>2.html`,
+... . Each page gets simple "newer"/"older" prev-next links, omitted
+on the first/last page respectively. Unset (the default) keeps the
+original single-page behavior. The RSS feed and sitemap always list
+every page regardless of pagination.
 
 ## Watch mode
 

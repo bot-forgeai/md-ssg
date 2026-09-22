@@ -37,7 +37,7 @@ def cmd_build(args):
         return 1
 
     pages = build_site(content_dir, templates_dir, output_dir, static_dir, args.title,
-                        args.base_url, args.drafts)
+                        args.base_url, args.drafts, args.page_size)
     print(f"Built {len(pages)} page(s) into {output_dir}")
     if args.base_url:
         print(f"Wrote feed.xml (base URL: {args.base_url})")
@@ -83,7 +83,8 @@ def cmd_watch(args):
     print(f"Watching {content_dir}, {templates_dir}, {static_dir} for changes (Ctrl+C to stop)")
     try:
         watch_loop(content_dir, templates_dir, output_dir, static_dir, args.title,
-                   args.base_url, args.drafts, poll_interval=args.interval, on_build=on_build)
+                   args.base_url, args.drafts, args.page_size, poll_interval=args.interval,
+                   on_build=on_build)
     except KeyboardInterrupt:
         pass
     return 0
@@ -114,7 +115,7 @@ def cmd_serve(args):
         watch_thread = threading.Thread(
             target=watch_loop,
             args=(content_dir, templates_dir, output_dir, static_dir, args.title,
-                  args.base_url, args.drafts),
+                  args.base_url, args.drafts, args.page_size),
             kwargs={"poll_interval": args.interval, "stop_event": stop_event,
                     "on_build": on_build},
             daemon=True,
@@ -122,7 +123,7 @@ def cmd_serve(args):
         watch_thread.start()
     else:
         build_site(content_dir, templates_dir, output_dir, static_dir, args.title, args.base_url,
-                   args.drafts)
+                   args.drafts, args.page_size)
 
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=output_dir)
     server = http.server.ThreadingHTTPServer((args.host, args.port), handler)
@@ -150,6 +151,10 @@ def build_parser():
     parser.add_argument("--drafts", action="store_true", default=None,
                          help="include pages marked 'draft: true' in front matter "
                               "(excluded by default, or by ssg.toml's [site] drafts)")
+    parser.add_argument("--page-size", type=int, default=None,
+                         help="split the index and each tag's listing page into pages of "
+                              "this many entries (default: no pagination, or ssg.toml's "
+                              "[site] page_size)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     build_p = sub.add_parser("build", help="render content into static HTML")
@@ -181,7 +186,7 @@ def build_parser():
 
 
 def _apply_config(args):
-    """Fill in unset --title/--base-url/--drafts from the site's ssg.toml.
+    """Fill in unset --title/--base-url/--drafts/--page-size from the site's ssg.toml.
 
     CLI flags always win; config values win over built-in defaults.
     Raises ConfigError on a malformed ssg.toml.
@@ -193,6 +198,8 @@ def _apply_config(args):
         args.base_url = config.get("base_url")
     if args.drafts is None:
         args.drafts = bool(config.get("drafts", False))
+    if args.page_size is None:
+        args.page_size = config.get("page_size")
 
 
 def main(argv=None):
