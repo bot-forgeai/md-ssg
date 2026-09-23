@@ -15,6 +15,26 @@ from .watch import watch_loop
 DEFAULT_SITE_DIR = "site"
 
 
+class NotFoundAwareHandler(http.server.SimpleHTTPRequestHandler):
+    """Serves a site's own 404.html (with a real 404 status) instead of
+    SimpleHTTPRequestHandler's default plain-text not-found body."""
+
+    def send_error(self, code, message=None, explain=None):
+        if code == http.HTTPStatus.NOT_FOUND:
+            path = os.path.join(self.directory, "404.html")
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    body = f.read()
+                self.send_response(code)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+                return
+        super().send_error(code, message, explain)
+
+
 def _slugify(title):
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     return slug or "untitled"
@@ -125,7 +145,7 @@ def cmd_serve(args):
         build_site(content_dir, templates_dir, output_dir, static_dir, args.title, args.base_url,
                    args.drafts, args.page_size)
 
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=output_dir)
+    handler = functools.partial(NotFoundAwareHandler, directory=output_dir)
     server = http.server.ThreadingHTTPServer((args.host, args.port), handler)
     print(f"Serving {output_dir} on http://{args.host}:{server.server_port}/")
     try:

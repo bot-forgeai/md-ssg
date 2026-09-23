@@ -62,6 +62,19 @@ DEFAULT_TAG_INDEX_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
+DEFAULT_404_TEMPLATE = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>{{ title }}</title><link rel="stylesheet" href="static/style.css"></head>
+<body>
+<nav><a href="index.html">&larr; home</a></nav>
+<main>
+<h1>Page not found</h1>
+<p>Sorry, that page doesn't exist.</p>
+</main>
+</body>
+</html>
+"""
+
 DEFAULT_STYLE_CSS = """\
 body {
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -192,6 +205,9 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
     sitemap to sitemap.xml -- both need absolute URLs, so they're
     skipped without one.
 
+    Always writes 404.html, rendered from templates/404.html if the
+    site provides one, or a small built-in fallback otherwise.
+
     A page with a front-matter `draft: true` field is excluded from the
     build (and the feed) unless drafts=True is passed.
 
@@ -238,6 +254,11 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
             f.write(index_html)
 
     _write_tag_pages(pages, templates_dir, output_dir, site_title, page_size)
+
+    not_found_template = _read_template(templates_dir, "404.html", DEFAULT_404_TEMPLATE)
+    not_found_html = apply_template(not_found_template, {"title": site_title})
+    with open(os.path.join(output_dir, "404.html"), "w", encoding="utf-8") as f:
+        f.write(not_found_html)
 
     if static_dir and os.path.isdir(static_dir):
         dest = os.path.join(output_dir, "static")

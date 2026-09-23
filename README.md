@@ -117,6 +117,15 @@ on the first/last page respectively. Unset (the default) keeps the
 original single-page behavior. The RSS feed and sitemap always list
 every page regardless of pagination.
 
+## Custom 404 page
+
+`ssg build` always writes a `404.html` into the output directory,
+rendered from `templates/404.html` if the site provides one, or a
+small built-in fallback otherwise — same drop-a-file-in-`templates/`
+convention as `page.html`/`index.html`/`tag.html`. `ssg serve` detects
+a request for a missing file and returns that page with a real `404`
+status instead of the default plain-text not-found body.
+
 ## Watch mode
 
 `ssg --site ssg/site watch` rebuilds once, then polls `content/`,

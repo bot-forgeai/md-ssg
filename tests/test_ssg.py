@@ -1,3 +1,4 @@
+import http.server
 import os
 import threading
 import urllib.request
@@ -251,6 +252,69 @@ def test_build_site_uses_custom_template(tmp_path):
 
     out = (output_dir / "a.html").read_text()
     assert out.startswith("CUSTOM:A:")
+
+
+def test_build_site_writes_default_404(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nbody")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "My Blog")
+
+    not_found_path = output_dir / "404.html"
+    assert not_found_path.exists()
+    html = not_found_path.read_text()
+    assert "not found" in html.lower()
+    assert 'href="index.html"' in html
+
+
+def test_build_site_uses_custom_404_template(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nbody")
+    templates_dir = tmp_path / "templates"
+    templates_dir.mkdir()
+    (templates_dir / "404.html").write_text("CUSTOM 404 for {{ title }}")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(templates_dir), str(output_dir), None, "My Blog")
+
+    assert (output_dir / "404.html").read_text() == "CUSTOM 404 for My Blog"
+
+
+def test_serve_returns_404_html_with_not_found_status(tmp_path):
+    import functools
+    import urllib.error
+
+    from ssg.__main__ import NotFoundAwareHandler
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    (content_dir / "a.md").write_text("---\ntitle: A\n---\nbody")
+    output_dir = tmp_path / "_build"
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "My Blog")
+
+    handler = functools.partial(NotFoundAwareHandler, directory=str(output_dir))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/nope.html", timeout=5)
+            assert False, "expected a 404"
+        except urllib.error.HTTPError as e:
+            assert e.code == 404
+            body = e.read().decode("utf-8")
+            assert "not found" in body.lower()
+
+        # a real page still serves normally
+        resp = urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/a.html", timeout=5)
+        assert resp.status == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_cli_build_and_new(tmp_path):
