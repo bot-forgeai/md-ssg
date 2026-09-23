@@ -27,7 +27,7 @@ def scan_signature(dirs):
 
 
 def watch_loop(content_dir, templates_dir, output_dir, static_dir=None, site_title="My Site",
-                base_url=None, drafts=False, poll_interval=1.0, stop_event=None,
+                base_url=None, drafts=False, page_size=None, poll_interval=1.0, stop_event=None,
                 sleep_fn=None, on_build=None):
     """Rebuild once, then poll for source changes and rebuild again on each change.
 
@@ -44,7 +44,7 @@ def watch_loop(content_dir, templates_dir, output_dir, static_dir=None, site_tit
     watched_dirs = [content_dir, templates_dir, static_dir]
 
     pages = build_site(content_dir, templates_dir, output_dir, static_dir, site_title,
-                        base_url, drafts)
+                        base_url, drafts, page_size)
     if on_build:
         on_build(pages)
     signature = scan_signature(watched_dirs)
@@ -57,7 +57,7 @@ def watch_loop(content_dir, templates_dir, output_dir, static_dir=None, site_tit
         if new_signature != signature:
             signature = new_signature
             pages = build_site(content_dir, templates_dir, output_dir, static_dir, site_title,
-                                base_url, drafts)
+                                base_url, drafts, page_size)
             if on_build:
                 on_build(pages)
 

@@ -11,6 +11,7 @@ from ssg.content import ContentError, load_page, load_pages, parse_front_matter
 from ssg.feed import render_rss
 from ssg.highlight import highlight as highlight_code, supported_languages
 from ssg.markdown import render as render_markdown
+from ssg.paginate import paginate, paged_filename, pagination_links
 from ssg.render import apply_template
 from ssg.sitemap import render_sitemap
 from ssg.tags import group_by_tag, parse_tags, slugify_tag
@@ -537,6 +538,140 @@ def test_build_site_writes_tag_pages(tmp_path):
     a_html = (output_dir / "a.html").read_text()
     assert "tags/python.html" in a_html
     assert "tags/web.html" in a_html
+
+
+def test_paginate_no_page_size_returns_one_chunk():
+    assert paginate([1, 2, 3], None) == [[1, 2, 3]]
+    assert paginate([1, 2, 3], 0) == [[1, 2, 3]]
+
+
+def test_paginate_exact_multiple():
+    assert paginate([1, 2, 3, 4], 2) == [[1, 2], [3, 4]]
+
+
+def test_paginate_with_remainder():
+    assert paginate([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+
+
+def test_paged_filename():
+    assert paged_filename("index.html", 1) == "index.html"
+    assert paged_filename("index.html", 2) == "index2.html"
+    assert paged_filename("python.html", 3) == "python3.html"
+
+
+def test_pagination_links_single_page_is_empty():
+    assert pagination_links(1, 1, lambda n: f"page{n}.html") == ""
+
+
+def test_pagination_links_first_page_has_only_next():
+    html = pagination_links(1, 3, lambda n: f"page{n}.html")
+    assert "page2.html" in html
+    assert "newer" not in html
+    assert "older" in html
+
+
+def test_pagination_links_last_page_has_only_prev():
+    html = pagination_links(3, 3, lambda n: f"page{n}.html")
+    assert "page2.html" in html
+    assert "older" not in html
+    assert "newer" in html
+
+
+def test_pagination_links_middle_page_has_both():
+    html = pagination_links(2, 3, lambda n: f"page{n}.html")
+    assert "page1.html" in html
+    assert "page3.html" in html
+
+
+def test_build_site_paginates_index(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    for i in range(5):
+        (content_dir / f"p{i}.md").write_text(
+            f"---\ntitle: Post {i}\ndate: 2026-01-0{i + 1}\n---\nBody {i}.\n"
+        )
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None,
+               "Test Site", page_size=2)
+
+    assert (output_dir / "index.html").exists()
+    assert (output_dir / "index2.html").exists()
+    assert (output_dir / "index3.html").exists()
+    assert not (output_dir / "index4.html").exists()
+
+    page1 = (output_dir / "index.html").read_text()
+    assert "Post 4" in page1 and "Post 3" in page1  # newest-first, page 1
+    assert "Post 2" not in page1
+    assert "index2.html" in page1
+    assert "newer" not in page1
+
+    page3 = (output_dir / "index3.html").read_text()
+    assert "Post 0" in page3
+    assert "index2.html" in page3
+    assert "older" not in page3
+
+
+def test_build_site_no_page_size_single_index(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    for i in range(5):
+        (content_dir / f"p{i}.md").write_text(f"---\ntitle: Post {i}\n---\nBody {i}.\n")
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None, "Test Site")
+
+    assert (output_dir / "index.html").exists()
+    assert not (output_dir / "index2.html").exists()
+
+
+def test_build_site_paginates_tag_pages(tmp_path):
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    for i in range(3):
+        (content_dir / f"p{i}.md").write_text(
+            f"---\ntitle: Post {i}\ndate: 2026-01-0{i + 1}\ntags: python\n---\nBody {i}.\n"
+        )
+    output_dir = tmp_path / "_build"
+
+    build_site(str(content_dir), str(tmp_path / "templates"), str(output_dir), None,
+               "Test Site", page_size=2)
+
+    assert (output_dir / "tags" / "python.html").exists()
+    assert (output_dir / "tags" / "python2.html").exists()
+    page1 = (output_dir / "tags" / "python.html").read_text()
+    assert "python2.html" in page1
+
+
+def test_cli_page_size_flag(tmp_path):
+    from ssg.__main__ import build_parser
+
+    site_dir = tmp_path / "site"
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True)
+    for i in range(3):
+        (content_dir / f"p{i}.md").write_text(f"---\ntitle: Post {i}\n---\nBody {i}.\n")
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "--page-size", "2", "build"])
+    assert args.func(args) == 0
+    assert (site_dir / "_build" / "index.html").exists()
+    assert (site_dir / "_build" / "index2.html").exists()
+
+
+def test_cli_page_size_from_config(tmp_path):
+    from ssg.__main__ import build_parser
+
+    site_dir = tmp_path / "site"
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True)
+    for i in range(3):
+        (content_dir / f"p{i}.md").write_text(f"---\ntitle: Post {i}\n---\nBody {i}.\n")
+    (site_dir / "ssg.toml").write_text("[site]\npage_size = 2\n")
+    parser = build_parser()
+    args = parser.parse_args(["--site", str(site_dir), "build"])
+    assert args.func(args) == 0
+    assert args.page_size == 2
+    assert (site_dir / "_build" / "index2.html").exists()
 
 
 def test_build_site_no_tags_no_tag_pages(tmp_path):

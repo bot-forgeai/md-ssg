@@ -5,6 +5,7 @@ import shutil
 from .content import load_pages
 from .feed import render_rss
 from .markdown import render as render_markdown
+from .paginate import paginate, paged_filename, pagination_links
 from .render import apply_template
 from .sitemap import render_sitemap
 from .tags import group_by_tag, parse_tags, slugify_tag
@@ -146,8 +147,8 @@ def _tag_links(tags, prefix):
     return " ".join(f'<a href="{prefix}{slugify_tag(t)}.html">{t}</a>' for t in tags)
 
 
-def _write_tag_pages(pages, templates_dir, output_dir, site_title):
-    """Write one listing page per tag, plus a tags/index.html of all tags."""
+def _write_tag_pages(pages, templates_dir, output_dir, site_title, page_size=None):
+    """Write one or more listing pages per tag, plus a tags/index.html of all tags."""
     groups = group_by_tag(pages)
     if not groups:
         return
@@ -158,14 +159,20 @@ def _write_tag_pages(pages, templates_dir, output_dir, site_title):
     tag_index_template = _read_template(templates_dir, "tags_index.html", DEFAULT_TAG_INDEX_TEMPLATE)
 
     for tag, tag_pages in groups.items():
-        links = "<ul>\n" + "\n".join(
-            f'<li><a href="../{p["slug"]}.html">{p["title"]}</a> {p.get("date", "")}</li>'
-            for p in tag_pages
-        ) + "\n</ul>"
-        context = {"title": f"Tag: {tag}", "content": links}
-        html = apply_template(tag_template, context)
-        with open(os.path.join(tags_dir, f"{slugify_tag(tag)}.html"), "w", encoding="utf-8") as f:
-            f.write(html)
+        base_filename = f"{slugify_tag(tag)}.html"
+        chunks = paginate(tag_pages, page_size)
+        total = len(chunks)
+        for num, chunk in enumerate(chunks, start=1):
+            links = "<ul>\n" + "\n".join(
+                f'<li><a href="../{p["slug"]}.html">{p["title"]}</a> {p.get("date", "")}</li>'
+                for p in chunk
+            ) + "\n</ul>"
+            links += pagination_links(num, total, lambda n, bf=base_filename: paged_filename(bf, n))
+            context = {"title": f"Tag: {tag}", "content": links}
+            html = apply_template(tag_template, context)
+            out_name = paged_filename(base_filename, num)
+            with open(os.path.join(tags_dir, out_name), "w", encoding="utf-8") as f:
+                f.write(html)
 
     index_links = "<ul>\n" + "\n".join(
         f'<li><a href="{slugify_tag(tag)}.html">{tag}</a> ({len(tag_pages)})'
@@ -178,7 +185,7 @@ def _write_tag_pages(pages, templates_dir, output_dir, site_title):
 
 
 def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_title="My Site",
-                base_url=None, drafts=False):
+                base_url=None, drafts=False, page_size=None):
     """Render every content page plus an index, writing HTML into output_dir.
 
     If base_url is given, also writes an RSS feed to feed.xml and a
@@ -187,6 +194,13 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
 
     A page with a front-matter `draft: true` field is excluded from the
     build (and the feed) unless drafts=True is passed.
+
+    page_size, if given, splits the site index and each tag's listing
+    page into pages of that many entries (page 1 keeps the original
+    filename, e.g. index.html/tags/<tag>.html; page N>=2 becomes
+    index2.html/tags/<tag>2.html, etc.), with simple prev/next links.
+    None (the default) keeps the original single-page-per-listing
+    behavior. The feed/sitemap always list every page regardless.
 
     Returns the list of page dicts that were built (useful for tests).
     """
@@ -209,16 +223,21 @@ def build_site(content_dir, templates_dir, output_dir, static_dir=None, site_tit
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(out_html)
 
-    links = "<ul>\n" + "\n".join(
-        f'<li><a href="{p["slug"]}.html">{p["title"]}</a> {p.get("date", "")}</li>'
-        for p in pages
-    ) + "\n</ul>"
-    index_context = {"title": site_title, "content": links}
-    index_html = apply_template(index_template, index_context)
-    with open(os.path.join(output_dir, "index.html"), "w", encoding="utf-8") as f:
-        f.write(index_html)
+    index_chunks = paginate(pages, page_size)
+    index_total = len(index_chunks)
+    for num, chunk in enumerate(index_chunks, start=1):
+        links = "<ul>\n" + "\n".join(
+            f'<li><a href="{p["slug"]}.html">{p["title"]}</a> {p.get("date", "")}</li>'
+            for p in chunk
+        ) + "\n</ul>"
+        links += pagination_links(num, index_total, lambda n: paged_filename("index.html", n))
+        index_context = {"title": site_title, "content": links}
+        index_html = apply_template(index_template, index_context)
+        out_name = paged_filename("index.html", num)
+        with open(os.path.join(output_dir, out_name), "w", encoding="utf-8") as f:
+            f.write(index_html)
 
-    _write_tag_pages(pages, templates_dir, output_dir, site_title)
+    _write_tag_pages(pages, templates_dir, output_dir, site_title, page_size)
 
     if static_dir and os.path.isdir(static_dir):
         dest = os.path.join(output_dir, "static")
