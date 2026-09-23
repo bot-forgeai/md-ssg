@@ -22,7 +22,6 @@ weighed against that tradeoff before it's approved.
 
 | # | Item | Why | Rough scope |
 |---|---|---|---|
-| 7 | Custom 404 page support | `serve` has no notion of a not-found page; a site providing `templates/404.html` (or similar) could get it copied/rendered into the build output. | Small — mirrors the existing template-fallback pattern already used for `page.html`/`index.html`. |
 | 8 | GitHub Pages deploy helper | A documented workflow (or a bundled `.github/workflows/deploy.yml` template a site can copy) for publishing `ssg build`'s output to GitHub Pages. Removes a manual step for anyone actually using this to publish something. | Small — mostly documentation plus one workflow YAML template; no code changes to `ssg/` itself. |
 
 ## Shipped
@@ -35,6 +34,7 @@ weighed against that tradeoff before it's approved.
 | 4 | Per-site config file (`ssg.toml`) | #12 |
 | 5 | Syntax highlighting for fenced code blocks | #14 |
 | 6 | Pagination for the index and tag-index pages | #16 |
+| 7 | Custom 404 page support | #18 |
 
 ## Notes
 
