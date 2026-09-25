@@ -136,6 +136,27 @@ thread alongside the HTTP server, so editing a post and reloading the
 browser shows the new content without restarting anything. `--interval`
 sets the poll period in seconds (default: 1.0) for either mode.
 
+## Deploying to GitHub Pages
+
+`examples/github-pages-deploy.yml` is a template GitHub Actions
+workflow that builds a site with `ssg` and publishes the output to
+GitHub Pages on every push. To use it in the repo that holds your
+site content:
+
+1. Copy the file to `.github/workflows/deploy.yml` in that repo.
+2. Edit the `ssg build` command's `--site` path to point at your site
+   directory, and `--base-url` to your published URL (typically
+   `https://<user>.github.io/<repo>`, or your custom domain).
+3. Edit the `upload-pages-artifact` step's `path` to match your
+   output directory (defaults to `<site>/_build`, or whatever you
+   pass to `--output`).
+4. One-time repo setting: Settings -> Pages -> Build and deployment ->
+   Source -> "GitHub Actions".
+
+The workflow installs `md-ssg` from PyPI (`pip install md-ssg`) — swap
+that step for an editable install from your own fork if you're not
+using a published release.
+
 ## Development
 
 ```

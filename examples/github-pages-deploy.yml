@@ -1,0 +1,59 @@
+# Template GitHub Actions workflow for publishing an md-ssg site to
+# GitHub Pages. Copy this file to .github/workflows/deploy.yml in the
+# repo that holds your site content, then edit the three settings
+# marked below.
+#
+# One-time repo setup: Settings -> Pages -> Build and deployment ->
+# Source -> "GitHub Actions".
+
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install md-ssg
+        run: pip install md-ssg
+
+      - name: Build site
+        run: |
+          # EDIT: --site path to your site directory, and --base-url
+          # to your published URL (https://<user>.github.io/<repo>,
+          # or your custom domain if you have one).
+          ssg --site site --base-url https://<user>.github.io/<repo> build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          # EDIT: match the output directory ssg build wrote to
+          # (defaults to <site>/_build; override with --output).
+          path: site/_build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
